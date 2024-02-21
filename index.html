@@ -14,6 +14,9 @@
     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
     crossorigin=""/>
     <script src="https://unpkg.com/onsenui/js/onsenui.min.js"></script>
+    <link rel="stylesheet" href="Leaflet.markercluster-master/dist/MarkerCluster.css">
+    <link rel="stylesheet" href="Leaflet.markercluster-master/dist/MarkerCluster.Default.css">
+    <script src="Leaflet.markercluster-master/leaflet.markercluster.js"></script>
     <style>
         .icone{
             background-color: #663399;
@@ -69,6 +72,7 @@
             <ons-toolbar>
                 <div class="left"><ons-back-button>back</ons-back-button></div>
                 <div class="center">Carte</div>
+                <div class="right"><ons-icon class="fa-search"></ons-icon></div>
             </ons-toolbar>
             <div id="map"></div>
         </ons-page>
@@ -113,6 +117,7 @@
     <script>
     
     let personnes=[];
+    let listeMarqueurs = new Set();
     
     document.addEventListener('init', function(event) {
         var page = event.target;
@@ -123,17 +128,25 @@
 
         if(page.id == 'page_carte'){
             navigator.geolocation.getCurrentPosition(position => {
-                createMap(page, position.coords.latitude, position.coords.longitude);
+                var markers = new L.MarkerClusterGroup();
+                const map = L.map('map').setView([ position.coords.latitude, position.coords.longitude], 13);
+                createMap(page, map);
+                map.on("moveend", function(){
+                    getEtablissement(map);
+                })
             });
+            
+            
         }
             
     });
 
     async function getActeurs(page){
                
-        const data = await fetch("https://morseweiswlpykaugwtd.supabase.co/rest/v1/acteur?select=*",
+        const data = await fetch("https://morseweiswlpykaugwtd.supabase.co/rest/v1/acteurs?select=*",
             { 
-                headers: { apikey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1vcnNld2Vpc3dscHlrYXVnd3RkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDY5NTcxMjgsImV4cCI6MjAyMjUzMzEyOH0.UV5XCINWe-Jaw6_-787Veh-LxjzUVudArvrgH6Ycf30'}
+                headers: { apikey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1vcnNld2Vpc3dscHlrYXVnd3RkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDY5NTcxMjgsImV4cCI6MjAyMjUzMzEyOH0.UV5XCINWe-Jaw6_-787Veh-LxjzUVudArvrgH6Ycf30'},
+                body : { "min_lat": "46",  "min_long": "6.5",  "max_lat": "7",  "max_long": "7" }
             });
         personnes = await data.json();
 
@@ -166,16 +179,36 @@
         return nouvelElement.firstElementChild;
     }
 
-    async function createMap(page, lat, long) {
-        var map = L.map('map').setView([lat, long], 13);
+    async function createMap(page, map) {
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         }).addTo(map);
 
+        map.addLayer(clusters);
+        getEtablissement(map);
+
         return map;
 
     }
+
+    async function getEtablissement(map){
+        const b = map.getBounds();
+        const data = await fetch("https://morseweiswlpykaugwtd.supabase.co/rest/v1/rpc/etablissements_in_view",
+        {
+            method:"POST",
+            headers:{apikey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1vcnNld2Vpc3dscHlrYXVnd3RkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDY5NTcxMjgsImV4cCI6MjAyMjUzMzEyOH0.UV5XCINWe-Jaw6_-787Veh-LxjzUVudArvrgH6Ycf30', "content-type":"application/json"},
+            body : JSON.stringify({ "min_lat": b._southWest.lat,  "min_long": b._southWest.lng,  "max_lat": b._northEast.lat,  "max_long": b._northEast.lng })
+        });
+        etablissements = await data.json();
+        etablissements.forEach(cinema => {
+            console.log(listeMarqueurs);
+            if(listeMarqueurs.has(cinema.etablissement_id)) return
+            markers.addLayer(L.marker([cinema.lat, cinema.long]).addTo(map));
+            listeMarqueurs.add(cinema.etablissement_id);
+        });
+    }
+
     </script>
 </body>
 </html>
