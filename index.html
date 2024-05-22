@@ -14,9 +14,6 @@
     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
     crossorigin=""/>
     <script src="https://unpkg.com/onsenui/js/onsenui.min.js"></script>
-    <link rel="stylesheet" href="Leaflet.markercluster-master/dist/MarkerCluster.css">
-    <link rel="stylesheet" href="Leaflet.markercluster-master/dist/MarkerCluster.Default.css">
-    <script src="Leaflet.markercluster-master/leaflet.markercluster.js"></script>
     <style>
         .icone{
             background-color: #663399;
@@ -72,7 +69,6 @@
             <ons-toolbar>
                 <div class="left"><ons-back-button>back</ons-back-button></div>
                 <div class="center">Carte</div>
-                <div class="right"><ons-icon class="fa-search"></ons-icon></div>
             </ons-toolbar>
             <div id="map"></div>
         </ons-page>
@@ -101,13 +97,18 @@
 
     
     <template id="item_acteur">
-        <ons-list-item>
+        <ons-list-item onclick="myNavigator.pushPage('films_acteur.html', {data: {
+            personne_id: this.dataset.personne_id, 
+            personnes_nom:this.querySelector('.list-item__title').textContent }});">
             <div class="left">
-                <img class="list-item__thumbnail" src="https://morseweiswlpykaugwtd.supabase.co/storage/v1/object/public/personnes/_inconnu.jpg">
+                <img class="list-item__thumbnail" src="_inconnu.jpg">
             </div>
             <div class="center">
                 <span class="list-item__title"></span>
                 <span class="list-item__subtitle"></span>
+            </div>
+            <div class="right">
+                <span class="fa fa-search"></span>
             </div>
         </ons-list-item>
     </template>
@@ -117,7 +118,8 @@
     <script>
     
     let personnes=[];
-    let listeMarqueurs = new Set();
+
+    let films_acteur;
     
     document.addEventListener('init', function(event) {
         var page = event.target;
@@ -128,87 +130,93 @@
 
         if(page.id == 'page_carte'){
             navigator.geolocation.getCurrentPosition(position => {
-                var markers = new L.MarkerClusterGroup();
-                const map = L.map('map').setView([ position.coords.latitude, position.coords.longitude], 13);
-                createMap(page, map);
-                map.on("moveend", function(){
-                    getEtablissement(map);
-                })
+                createMap(page, position.coords.latitude, position.coords.longitude);
             });
-            
-            
         }
+
+        if(page.id == 'page_films_acteur'){
+            page.querySelector(".toolbar__title").textContent = page.data.personnes_nom;
+           getFilms(page.data.personne_id);
+        }
+       
             
     });
 
     async function getActeurs(page){
                
-        const data = await fetch("https://morseweiswlpykaugwtd.supabase.co/rest/v1/acteurs?select=*",
-            { 
-                headers: { apikey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1vcnNld2Vpc3dscHlrYXVnd3RkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDY5NTcxMjgsImV4cCI6MjAyMjUzMzEyOH0.UV5XCINWe-Jaw6_-787Veh-LxjzUVudArvrgH6Ycf30'},
-                body : { "min_lat": "46",  "min_long": "6.5",  "max_lat": "7",  "max_long": "7" }
-            });
-        personnes = await data.json();
+               const data = await fetch("https://morseweiswlpykaugwtd.supabase.co/rest/v1/acteurs?select=*",
+                   { 
+                       headers: { apikey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1vcnNld2Vpc3dscHlrYXVnd3RkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDY5NTcxMjgsImV4cCI6MjAyMjUzMzEyOH0.UV5XCINWe-Jaw6_-787Veh-LxjzUVudArvrgH6Ycf30'}
+                   });
+               personnes = await data.json();
+               var titre = page.querySelector('ons-list-item');
+               var infiniteList = page.querySelector('ons-lazy-repeat');
+               infiniteList.delegate = {
+                   createItemContent: createItemActeur,
+                   countItems: function() {
+                       return personnes.length;
+                   }
+               };    
+           }
+       
+           function loadImage(element, source){
+               var portrait = new Image();
+               portrait.src= source;
+               portrait.onload = function(){
+                   element.src = source;
+               }
+           }
+       
+           function createItemActeur(index){
+                const acteur = personnes[index];
+                var nouvelElement = document.getElementById("item_acteur").content.cloneNode(true)
+                nouvelElement.firstElementChild.dataset.personne_id = acteur.personne_id
+                nouvelElement.querySelector(".list-item__title").textContent = acteur.nom 
+                nouvelElement.querySelector(".list-item__subtitle").textContent = acteur.age??'décédé'
+                loadImage(nouvelElement.querySelector(".list-item__thumbnail"),`https://morseweiswlpykaugwtd.supabase.co/storage/v1/object/public/personnes/${acteur.personne_id}.jpg`)
+       
+                return nouvelElement.firstElementChild;
+           }
 
-        var infiniteList = page.querySelector('ons-lazy-repeat');
-        infiniteList.delegate = {
-            createItemContent: createItemActeur,
-            countItems: function() {
-                return personnes.length;
-            }
-        };    
- 
-    }
-
-    function loadImage(element, source){
-        var portrait = new Image();
-        portrait.src= source;
-        portrait.onload = function(){
-            element.src = source;
-        }
-    }
-
-    function createItemActeur(index){
-        const acteur = personnes[index];
-        var nouvelElement = document.getElementById("item_acteur").content.cloneNode(true)
-
-        nouvelElement.querySelector(".list-item__title").textContent = acteur.nom 
-        nouvelElement.querySelector(".list-item__subtitle").textContent = acteur.age??'décédé'
-        loadImage(nouvelElement.querySelector(".list-item__thumbnail"),`https://morseweiswlpykaugwtd.supabase.co/storage/v1/object/public/personnes/${acteur.personne_id}.jpg`)
-
-        return nouvelElement.firstElementChild;
-    }
-
-    async function createMap(page, map) {
+    async function createMap(page, lat, long) {
+        var map = L.map('map').setView([lat, long], 13);
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         }).addTo(map);
 
-        map.addLayer(clusters);
-        getEtablissement(map);
-
         return map;
 
     }
 
-    async function getEtablissement(map){
-        const b = map.getBounds();
-        const data = await fetch("https://morseweiswlpykaugwtd.supabase.co/rest/v1/rpc/etablissements_in_view",
-        {
-            method:"POST",
-            headers:{apikey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1vcnNld2Vpc3dscHlrYXVnd3RkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDY5NTcxMjgsImV4cCI6MjAyMjUzMzEyOH0.UV5XCINWe-Jaw6_-787Veh-LxjzUVudArvrgH6Ycf30', "content-type":"application/json"},
-            body : JSON.stringify({ "min_lat": b._southWest.lat,  "min_long": b._southWest.lng,  "max_lat": b._northEast.lat,  "max_long": b._northEast.lng })
-        });
-        etablissements = await data.json();
-        etablissements.forEach(cinema => {
-            console.log(listeMarqueurs);
-            if(listeMarqueurs.has(cinema.etablissement_id)) return
-            markers.addLayer(L.marker([cinema.lat, cinema.long]).addTo(map));
-            listeMarqueurs.add(cinema.etablissement_id);
-        });
-    }
+    async function getFilms(acteur_id, acteur_nom) {
+            const data = await fetch("https://morseweiswlpykaugwtd.supabase.co/functions/v1/detail",
+            { 
+                method:"POST",
+                headers:{
+                    apikey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1vcnNld2Vpc3dscHlrYXVnd3RkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDY5NTcxMjgsImV4cCI6MjAyMjUzMzEyOH0.UV5XCINWe-Jaw6_-787Veh-LxjzUVudArvrgH6Ycf30',
+                    "content-type":"application/json",
+                },
+                body: JSON.stringify({personne_id : acteur_id})
+            });
+            var films = await data.json();
+            console.log(films);
+            var films_list = document.getElementById('films_list');
+            films.forEach(function(film) {
+                var film_item = document.createElement('ons-list-item');
+                film_item.innerHTML = `
+                    <div class="left">
+                        <img class="list-item__thumbnail" src="https://morseweiswlpykaugwtd.supabase.co/storage/v1/object/public/films/${film.id}.jpg" alt="${film.titre}">
+                    </div>
+                    <div class="center">
+                        <span class="list-item__title">${film.titre}</span>
+                        <span class="list-item__subtitle">${film.annee}</span>
 
+                    </div>
+                `;
+                films_list.appendChild(film_item);
+            });
+    }
     </script>
 </body>
 </html>
