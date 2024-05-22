@@ -3,8 +3,21 @@
         <div class="left"><ons-back-button>back</ons-back-button></div>
         <div class="center">Films</div>
     </ons-toolbar>
-    <ons-list id="films_list">
-        <ons-lazy-repeat>
-        </ons-lazy-repeat>
+    <ons-list>
+        <ons-lazy-repeat></ons-lazy-repeat>
     </ons-list>
+    <template id="item_film">
+        <ons-list_item onclick="myNavigator.pushPage('info_film.html', {data:{
+            film_id : this.dataset.film_id,
+            film_nom : this.querySelector('.list-item__title').textContent }})">
+            <div class="left">
+                <img class="list-item__thumbnail" src="_inconnu.jpg">
+            </div>
+            <div class="center">
+                <span class="list-item__title"></span>
+                <span class="list-item__subtitle"></span>
+            </div>
+        </ons-list_item>
+    </template>
 </ons-page>
+

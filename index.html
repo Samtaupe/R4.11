@@ -136,7 +136,11 @@
 
         if(page.id == 'page_films_acteur'){
             page.querySelector(".toolbar__title").textContent = page.data.personnes_nom;
-           getFilms(page.data.personne_id);
+           getFilms(page.data.personne_id, page);
+        }
+
+        if(page.id == 'page_info_film'){
+            getFilmInfo(page);
         }
        
             
@@ -189,7 +193,7 @@
 
     }
 
-    async function getFilms(acteur_id, acteur_nom) {
+    async function getFilms(acteur_id, page) {
             const data = await fetch("https://morseweiswlpykaugwtd.supabase.co/functions/v1/detail",
             { 
                 method:"POST",
@@ -200,22 +204,50 @@
                 body: JSON.stringify({personne_id : acteur_id})
             });
             var films = await data.json();
-            console.log(films);
-            var films_list = document.getElementById('films_list');
-            films.forEach(function(film) {
-                var film_item = document.createElement('ons-list-item');
-                film_item.innerHTML = `
-                    <div class="left">
-                        <img class="list-item__thumbnail" src="https://morseweiswlpykaugwtd.supabase.co/storage/v1/object/public/films/${film.id}.jpg" alt="${film.titre}">
-                    </div>
-                    <div class="center">
-                        <span class="list-item__title">${film.titre}</span>
-                        <span class="list-item__subtitle">${film.annee}</span>
 
-                    </div>
-                `;
-                films_list.appendChild(film_item);
+            var titre = page.querySelector('ons-list-item');
+            var infiniteList = page.querySelector('ons-lazy-repeat');
+            infiniteList.delegate = {
+                createItemContent: createFilm,
+                countItems: function() {
+                    return films.length;
+                }
+            };  
+            function createFilm(index) {
+                var film = films[index];
+                var nouveau_film = document.getElementById("item_film").content.cloneNode(true);
+                nouveau_film.firstElementChild.dataset.film_id = film.film_id;
+                nouveau_film.querySelector(".list-item__title").textContent = film.titre;
+                nouveau_film.querySelector(".list-item__subtitle").textContent = film.annee;
+                loadImage(nouveau_film.querySelector(".list-item__thumbnail"), `https://morseweiswlpykaugwtd.supabase.co/storage/v1/object/public/films/${film.film_id}.jpg`);
+                return nouveau_film.firstElementChild;
+            }
+    }
+    
+    
+
+    async function getFilmInfo(page){
+        var film_id = page.data.film_id;
+        var film_nom = page.data.film_nom;
+        page.querySelector(".toolbar__title").textContent = film_nom;
+        const data = await fetch("https://morseweiswlpykaugwtd.supabase.co/functions/v1/film",
+            { 
+                method:"POST",
+                headers:{
+                    apikey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1vcnNld2Vpc3dscHlrYXVnd3RkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDY5NTcxMjgsImV4cCI6MjAyMjUzMzEyOH0.UV5XCINWe-Jaw6_-787Veh-LxjzUVudArvrgH6Ycf30',
+                    "content-type":"application/json",
+                },
+                body: JSON.stringify({film_id : film_id})
             });
+        var film = await data.json();
+        console.log(film)
+        var film_info = page.querySelector("#film_info");
+        var template = document.getElementById("item_info_film").content.cloneNode(true);
+        template.querySelector("#film_title").textContent = film.titre_original;
+        template.querySelector("#film_description").textContent = film.resume;
+        template.querySelector("#film_date").textContent = film.sortie
+        template.querySelector("#film_affiche"), `https://morseweiswlpykaugwtd.supabase.co/storage/v1/object/public/films/${film.film_id}.jpg`
+        film_info.appendChild(template);
     }
     </script>
 </body>
