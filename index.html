@@ -26,6 +26,47 @@
             align-items: center;
         }
         #map { height: 100%; }
+        #film_title{
+            text-align: center;
+        }
+
+        #info_film{
+            background-color: #d7d7db;
+            border: #acacaf;
+            text-align: center;
+        }
+        .page_info {
+            margin: 0 5%;
+        }
+        #film_alias{
+            font-style: italic;
+        }
+
+        .actor-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            margin: 10px;
+        }
+
+        .actor-card img {
+            width: 50%;
+            height: 50%;
+            border-radius: 50%;
+        }
+
+        .actor-card h3 {
+            font-size: 16px;
+            margin-top: 10px;
+        }
+
+        .actor-card p {
+            font-size: 14px;
+            color: #666;
+        }
     </style>
 </head>
 <body>
@@ -120,6 +161,8 @@
     let personnes=[];
 
     let films_acteur;
+
+    var id_film;
     
     document.addEventListener('init', function(event) {
         var page = event.target;
@@ -194,35 +237,36 @@
     }
 
     async function getFilms(acteur_id, page) {
-    const data = await fetch("https://morseweiswlpykaugwtd.supabase.co/functions/v1/detail", {
-        method: "POST",
-        headers: {
-            apikey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1vcnNld2Vpc3dscHlrYXVnd3RkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDY5NTcxMjgsImV4cCI6MjAyMjUzMzEyOH0.UV5XCINWe-Jaw6_-787Veh-LxjzUVudArvrgH6Ycf30',
-            "content-type": "application/json",
-        },
-        body: JSON.stringify({ personne_id: acteur_id })
-    });
-    var films = await data.json();
+        const data = await fetch("https://morseweiswlpykaugwtd.supabase.co/rest/v1/rpc/films_par_acteur", {
+            method: "POST",
+            headers: {
+                apikey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1vcnNld2Vpc3dscHlrYXVnd3RkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDY5NTcxMjgsImV4cCI6MjAyMjUzMzEyOH0.UV5XCINWe-Jaw6_-787Veh-LxjzUVudArvrgH6Ycf30',
+                "content-type": "application/json",
+            },
+            body: JSON.stringify({ id: acteur_id })
+        });
+        var films = await data.json();
 
-    var infiniteList = page.querySelector('ons-lazy-repeat');
-    infiniteList.delegate = {
-        createItemContent: createFilm,
-        countItems: function () {
-            return films.length;
+        var infiniteList = page.querySelector('ons-lazy-repeat');
+        infiniteList.delegate = {
+            createItemContent: createFilm,
+            countItems: function () {
+                return films.length;
+            }
+        };
+        function createFilm(index) {
+            var film = films[index];
+            var nouveau_film = document.getElementById("item_film").content.cloneNode(true);
+            nouveau_film.firstElementChild.dataset.film_id = film.film_id;
+            nouveau_film.querySelector(".list-item__title").textContent = `${film.titre} (${film.annee})`;
+            nouveau_film.querySelector(".alias").textContent = film.alias;
+            nouveau_film.querySelector(".genre-duree").textContent = `${film.genres.join(", ")} | ${formatDuration(film.duree)}`
+            nouveau_film.querySelector(".resume").textContent = truncateText(film.resume);
+            id_film = film.film_id;
+            loadImage(nouveau_film.querySelector(".affiche"), `https://morseweiswlpykaugwtd.supabase.co/storage/v1/object/public/films/${film.film_id}.jpg`);
+            
+            return nouveau_film.firstElementChild;
         }
-    };
-    function createFilm(index) {
-        var film = films[index];
-        var nouveau_film = document.getElementById("item_film").content.cloneNode(true);
-        nouveau_film.firstElementChild.dataset.film_id = film.film_id;
-        nouveau_film.querySelector(".list-item__title").textContent = `${film.titre_original} (${film.annee})`;
-        nouveau_film.querySelector(".alias").textContent = film.alias;
-        nouveau_film.querySelector(".genre-duree").textContent = `${film.genres.join(", ")} | ${formatDuration(film.duree)}`
-        nouveau_film.querySelector(".resume").textContent = truncateTextByWords(film.resume, 20);
-    
-        loadImage(nouveau_film.querySelector(".affiche"), `https://morseweiswlpykaugwtd.supabase.co/storage/v1/object/public/films/${film.film_id}.jpg`);
-        
-        return nouveau_film.firstElementChild;
     }
 
     function formatDuration(duration) {
@@ -231,15 +275,14 @@
         return `${hours}h${minutes < 10 ? "0" + minutes : minutes}`;
     }
 
-    function truncateTextByWords(text, maxWords) {
+    function truncateText(text) {
     var words = text.split(' ');
-    if (words.length > maxWords) {
-        return words.slice(0, maxWords).join(' ') + '...';
+    if (words.length > 20) {
+        return words.slice(0, 20).join(' ') + '...';
     } else {
         return text;
     }
-}
-}
+    }
         
     
 
@@ -257,14 +300,45 @@
                 body: JSON.stringify({film_id : film_id})
             });
         var film = await data.json();
-        console.log(film)
+        console.log(film);
         var film_info = page.querySelector("#film_info");
         var template = document.getElementById("item_info_film").content.cloneNode(true);
-        template.querySelector("#film_title").textContent = film.titre_original;
-        template.querySelector("#film_description").textContent = film.resume;
-        template.querySelector("#film_date").textContent = film.sortie
-        template.querySelector("#film_affiche"), `https://morseweiswlpykaugwtd.supabase.co/storage/v1/object/public/films/${film.film_id}.jpg`
-        loadImage(template.querySelector("#film_affiche"), `https://morseweiswlpykaugwtd.supabase.co/storage/v1/object/public/films/${film.film_id}.jpg`);
+        template.querySelector("#film_title").textContent = `${film.titre} (${film.annee})`;
+        template.querySelector("#film_resume").textContent = film.resume;
+        template.querySelector("#film_date").textContent = `${film.sortie} • ${formatDuration(film.duree)}`;
+        template.querySelector("#film_genre").textContent = film.genres.map(item => item.genre).join(', ');
+        template.querySelector("#film_alias").textContent = film.slogan;
+        template.querySelector("#film_resume").textContent = film.resumes.map(item => item.resume);
+        loadImage(template.querySelector(".film_affiche"), `https://morseweiswlpykaugwtd.supabase.co/storage/v1/object/public/films/${id_film}.jpg`);
+        var note = film.vote_moyenne / 2;
+        var noteElement = template.querySelector("#film_note");
+        for (var i = 0; i < 5; i++) {
+            var star = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            star.innerHTML = '<path d="m50,2 12,34h36l-28,22 10,34-30-20-30,20 10-34-28-22h36z" />';
+            if (i < note) {
+                star.style.fill = "gold"; 
+            } else {
+                star.style.fill = "gray"; 
+            }
+            noteElement.appendChild(star);
+            star.setAttribute("width", "20px"); 
+            star.setAttribute("height", "20px"); 
+            star.setAttribute("viewBox", "0 0 100 100"); 
+        }
+        var actorCarousel = template.querySelector("#actor-carousel");
+        film.acteurs.forEach(acteur => {
+            console.log(acteur);
+            var actorCard = document.createElement("ons-carousel-item");
+            actorCard.innerHTML = `
+                <div class="actor-card">
+                    <img src="https://morseweiswlpykaugwtd.supabase.co/storage/v1/object/public/personnes/${acteur.acteurs.personne_id}.jpg" alt="${acteur.acteurs.nom}">
+                    <h3>${acteur.acteurs.nom}</h3>
+                    <p><i>${acteur.alias}</i></p>
+                </div>
+            `;
+            actorCarousel.appendChild(actorCard);
+        });
+        page.querySelector("#film_info").appendChild(template);
         film_info.appendChild(template);
     }
     </script>

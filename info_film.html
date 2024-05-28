@@ -5,15 +5,21 @@
     </ons-toolbar>
     <div id="film_info"></div>
     <template id="item_info_film">
-        <div class="center">
+        <div class="page_info">
             <h2 id="film_title"></h2>
-            <p id="film_date"></p>
-        </div>
-        <div>
-            <p id="film_description"></p>
-        </div>
-        <div>
-            <img id="film_affiche" src="_inconnu.jpg">
+            <div id="film_note"></div> 
+            <div id="info_film">
+                <p id="film_date"></p>
+                <p id="film_genre"></p>
+            </div>
+            <div id="resume_film">
+                <p id="film_alias"></p>
+                <h3>Résumé</h3>
+                <p id="film_resume"></p>
+            </div>
+            <ons-carousel id="actor-carousel" swipeable>
+            </ons-carousel>
+            <img class="film_affiche" src="film_inconnu.jpg" style="max-width: 100%; height: auto;">
         </div>
     </template>
 </ons-page>
