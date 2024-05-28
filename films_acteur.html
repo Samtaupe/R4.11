@@ -7,17 +7,22 @@
         <ons-lazy-repeat id="lazy-repeat-films"></ons-lazy-repeat>
     </ons-list>
     <template id="item_film">
-        <ons-list_item onclick="myNavigator.pushPage('info_film.html', {data:{
+        <ons-list-item onclick="myNavigator.pushPage('info_film.html', {data:{
             film_id : this.dataset.film_id,
             film_nom : this.querySelector('.list-item__title').textContent }})">
             <div class="left">
-                <img class="list-item__thumbnail" src="" style="width: 20%; height: 20%;">
+                <img class="affiche" src="film_inconnu.jpg" width="100 px">
             </div>
-            <div class="center">
-                <span class="list-item__title">{{titre}} ({{annee}})</span>
-                <span class="list-item__subtitle">{{role_joue}} | {{genres.join(", ")}} | {{formatDuration(duree)}}</span>
-                <span class="list-item__subtitle">{{resume}}</span>
+            <div class="center" style="margin-left: 50px;">
+                <b><span class="list-item__title"></span></b>
+                <p><span class="alias" style="color: grey"></span></p>
+                <p><span class="genre-duree"></span></p>
+                <p><span class="resume"></span></p>
+            </div>
+            <div class="right">
+                <i class="fa fa-angle-right"></i>
             </div>
         </ons-list-item>
     </template>
+    
 </ons-page>
